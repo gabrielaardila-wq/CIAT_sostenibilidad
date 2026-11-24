@@ -162,6 +162,10 @@ const SIGN_INFO = {
     text: "01 Semillas del futuro · 02 Zona Quindío · 03 Zona Bosque · 04 Observar sin ser vistos." },
   Atril_Rosa: { num: "◎", color: "#f2a3aa", title: "Espirales que miden la vida", sub: "Conchas · Spirals That Measure Life",
     text: "En la orilla donde el agua calma toca la tierra, habitan los caracoles de agua dulce. Son mucho más que conchas vacías: al alimentarse de algas, purifican el estanque de forma natural y sirven como bioindicadores vivos que confirman la buena salud del agua." },
+  Atril_Verde: { num: "◎", color: "#8a9a5b", title: "Arquitectos del agua y la sombra", sub: "Guadual · Architects of Water and Shade",
+    text: "Allí, donde sus tallos se arquean formando un túnel vivo, la guadua teje un refugio fresco frente al sol tropical. Bajo tierra, sus raíces entrelazadas abrazan el suelo como una red invisible que frena la erosión y filtra cada gota de lluvia. Conocida como el acero vegetal, captura grandes cantidades de carbono y ofrece hogar y alimento a decenas de aves e insectos." },
+  Atril_Azul: { num: "◎", color: "#7fb3c2", title: "Centinelas del espejo de agua", sub: "Polla gris · Gallinula chloropus",
+    text: "Reconocible por su escudo facial rojo intenso y su pico de punta amarilla, la polla gris recorre con sigilo las orillas del estanque. Gracias a sus largos dedos camina sobre la vegetación flotante sin hundirse, alimentándose de insectos y plantas acuáticas para mantener el equilibrio natural del humedal." },
   SenalTrans_1: { num: "1", color: "#9aab9f", title: "Ave en vuelo", sub: "Señal translúcida con relieve", text: "Acrílico translúcido de color con el dibujo del ave en relieve blanco por ambas caras." },
   SenalTrans_2: { num: "2", color: "#e0a3b4", title: "Flor", sub: "Señal translúcida con relieve", text: "Acrílico translúcido rosado junto al guadual del Tramo 1, con la flor en relieve blanco." },
   SenalTrans_3: { num: "3", color: "#96b3b7", title: "Pájaro en la rama", sub: "Señal translúcida con relieve", text: "Acrílico translúcido junto al lago, con el pájaro posado dibujado en relieve blanco." },
@@ -362,7 +366,7 @@ for (const s of data.signs) {
 }
 
 atriles.scene.updateMatrixWorld(true);
-atriles.scene.traverse((o) => { if (o.isMesh && o.name === "Atril_Rosa") { const c = new THREE.Box3().setFromObject(o).getCenter(new THREE.Vector3()); signs.push({ name: "Atril_Rosa", centre: c }); } });
+atriles.scene.traverse((o) => { if (o.isMesh && /^Atril_(Rosa|Verde|Azul)$/.test(o.name)) { const c = new THREE.Box3().setFromObject(o).getCenter(new THREE.Vector3()); signs.push({ name: o.name, centre: c }); } });
 // ------------------------------------------------------------ fog colour from the sky horizon, env map
 let envDone = false;
 manager.onLoad = () => {
