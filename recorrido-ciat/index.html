@@ -1,0 +1,528 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>[hidden]{display:none!important}body{margin:0}</style>
+<title>Recorrido Campus CIAT</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@600;800&family=Figtree:wght@400;500;600&display=swap">
+<style>
+/* Layout: full-bleed 3D canvas; glass HUD panels pinned to corners, colors taken from the project's signage */
+:root {
+  --night: #0d1f16;          /* deep forest (Zona Bosque) */
+  --glass: rgba(13, 31, 22, 0.72);
+  --glass-strong: rgba(13, 31, 22, 0.9);
+  --line: rgba(243, 239, 227, 0.16);
+  --cream: #f3efe3;
+  --muted: #b9c4b3;
+  --sage: #b9cc78;           /* 04 */
+  --pink: #f2a3aa;           /* 01 */
+  --teal: #2a6f80;           /* 02 */
+  --brown: #4e342b;          /* poste */
+  --display: "Sora", "Segoe UI", system-ui, sans-serif;
+  --body: "Figtree", "Segoe UI", system-ui, sans-serif;
+  color-scheme: dark;
+}
+html, body { height: 100%; }
+body { background: var(--night); color: var(--cream); font-family: var(--body); font-size: 15px; overflow: hidden; }
+#view { position: fixed; inset: 0; display: block; width: 100%; height: 100%; }
+button { font: inherit; color: inherit; cursor: pointer; }
+button:focus-visible { outline: 2px solid var(--sage); outline-offset: 2px; }
+
+/* ---------- start / pause screen ---------- */
+#menu { position: fixed; inset: 0; display: grid; place-items: center; background: radial-gradient(120% 90% at 30% 20%, rgba(13,31,22,.55), rgba(8,18,13,.92)); z-index: 20;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 24px; }
+.card { width: min(980px, 100%); max-height: 100%; overflow-y: auto; display: grid; grid-template-columns: 1.15fr 1fr; gap: 28px; background: var(--glass-strong); border: 1px solid var(--line); border-radius: 18px; padding: 32px; }
+@media (max-width: 760px) { .card { grid-template-columns: 1fr; padding: 22px; } }
+.eyebrow { font-family: var(--display); font-weight: 600; font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--sage); }
+h1 { font-family: var(--display); font-weight: 800; font-size: clamp(30px, 4.4vw, 46px); line-height: 1.02; margin: 10px 0 14px; text-wrap: balance; }
+.lede { color: var(--muted); line-height: 1.55; max-width: 46ch; margin: 0 0 22px; }
+.keys { display: grid; grid-template-columns: auto 1fr; gap: 9px 14px; align-items: center; margin: 0 0 24px; font-size: 14px; color: var(--muted); }
+kbd { font-family: var(--display); font-size: 12px; font-weight: 600; color: var(--cream); background: rgba(243,239,227,.08); border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 6px; padding: 3px 7px; white-space: nowrap; }
+#enter { font-family: var(--display); font-weight: 700; font-size: 16px; background: var(--sage); color: var(--night); border: 0; border-radius: 999px; padding: 14px 26px; }
+#enter:disabled { opacity: .45; cursor: progress; }
+.bar { height: 4px; background: rgba(243,239,227,.1); border-radius: 4px; overflow: hidden; margin-top: 16px; max-width: 320px; }
+.bar i { display: block; height: 100%; width: 0; background: var(--pink); transition: width .25s; }
+#loadtxt { font-size: 12px; color: var(--muted); margin-top: 8px; font-variant-numeric: tabular-nums; }
+.zones h2 { font-family: var(--display); font-size: 13px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); margin: 0 0 12px; font-weight: 600; }
+.zonelist { display: grid; gap: 6px; }
+.zonelist button { display: flex; align-items: center; gap: 12px; text-align: left; background: rgba(243,239,227,.04); border: 1px solid var(--line); border-radius: 10px; padding: 7px 12px; }
+.zonelist button:hover { background: rgba(185,204,120,.12); border-color: rgba(185,204,120,.4); }
+.zonelist .dot { width: 10px; height: 10px; border-radius: 50%; flex: none; }
+.zonelist b { font-weight: 600; display: block; }
+.zonelist small { color: var(--muted); font-size: 12.5px; }
+
+/* ---------- HUD ---------- */
+.hud { position: fixed; z-index: 10; pointer-events: none; }
+#mini { left: max(16px, env(safe-area-inset-left, 0px)); bottom: calc(16px + env(safe-area-inset-bottom, 0px)); background: var(--glass); border: 1px solid var(--line); border-radius: 12px; padding: 8px; }
+#mini canvas { display: block; border-radius: 6px; }
+#mini span { display: block; font-size: 11px; color: var(--muted); margin-top: 6px; letter-spacing: .04em; }
+#cross { left: 50%; top: 50%; width: 6px; height: 6px; margin: -3px 0 0 -3px; border-radius: 50%; background: var(--cream); opacity: .7; box-shadow: 0 0 0 1px rgba(0,0,0,.35); }
+#place { left: 50%; top: calc(18px + env(safe-area-inset-top, 0px)); transform: translateX(-50%); font-family: var(--display); font-weight: 600; font-size: 13px; letter-spacing: .1em; text-transform: uppercase; background: var(--glass); border: 1px solid var(--line); border-radius: 999px; padding: 8px 16px; transition: opacity .4s; }
+#info { right: max(16px, env(safe-area-inset-right, 0px)); bottom: calc(16px + env(safe-area-inset-bottom, 0px)); width: min(380px, calc(100% - 32px)); background: var(--glass-strong); border: 1px solid var(--line); border-radius: 14px; padding: 18px 20px; transition: opacity .3s, transform .3s; }
+#info.off { opacity: 0; transform: translateY(8px); }
+#info .num { font-family: var(--display); font-weight: 800; font-size: 13px; border-radius: 6px; padding: 3px 8px; color: var(--night); display: inline-block; }
+#info h3 { font-family: var(--display); font-weight: 800; font-size: 22px; margin: 10px 0 2px; }
+#info .sub { color: var(--muted); font-size: 13px; margin: 0 0 10px; }
+#info p { margin: 0; line-height: 1.55; font-size: 14px; }
+#tip { right: max(16px, env(safe-area-inset-right, 0px)); top: calc(18px + env(safe-area-inset-top, 0px)); font-size: 12px; color: var(--muted); background: var(--glass); border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; }
+
+/* ---------- big map ---------- */
+#map { position: fixed; inset: 0; z-index: 15; display: grid; place-items: center; background: rgba(8,18,13,.8);
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 16px; }
+#map .wrap { position: relative; max-width: 100%; }
+#map canvas { display: block; max-width: 100%; height: auto; border-radius: 12px; border: 1px solid var(--line); }
+#map .close { position: absolute; top: 10px; right: 10px; background: var(--glass-strong); border: 1px solid var(--line); border-radius: 999px; padding: 6px 14px; }
+#map p { color: var(--muted); font-size: 13px; margin: 10px 0 0; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<canvas id="view" aria-label="Vista 3D del recorrido"></canvas>
+
+<div id="cross" class="hud" hidden></div>
+<div id="place" class="hud" hidden></div>
+<div id="tip" class="hud" hidden><kbd>M</kbd> mapa · <kbd>Esc</kbd> pausa</div>
+<div id="mini" class="hud" hidden><canvas id="minicv" width="236" height="167"></canvas><span>Norte del boceto arriba</span></div>
+<aside id="info" class="hud off" aria-live="polite"></aside>
+
+<div id="map" hidden>
+  <div class="wrap">
+    <canvas id="mapcv" width="1020" height="720"></canvas>
+    <button class="close" id="mapclose" type="button">Cerrar</button>
+    <p>Haz clic en un punto para ir allí.</p>
+  </div>
+</div>
+
+<section id="menu">
+  <div class="card">
+    <div>
+      <div class="eyebrow">Bosque seco tropical · Campus CIAT</div>
+      <h1>Recorrido Campus CIAT</h1>
+      <p class="lede">Camina por el lago y la plataforma, el guadual del Tramo 1, los cultivos, la avenida de palmas, el hotel y el banco de semillas. Acércate a las señales para leer su historia.</p>
+      <div class="keys">
+        <kbd>W A S D</kbd><span>o flechas para caminar</span>
+        <kbd>Mouse</kbd><span>para mirar alrededor</span>
+        <kbd>Shift</kbd><span>para ir más rápido</span>
+        <kbd>M</kbd><span>mapa y saltar entre zonas</span>
+        <kbd>Esc</kbd><span>pausa y este menú</span>
+      </div>
+      <button id="enter" type="button" disabled>Cargando…</button>
+      <div class="bar"><i id="barfill"></i></div>
+      <div id="loadtxt">Preparando la escena</div>
+    </div>
+    <div class="zones">
+      <h2>Ir directo a</h2>
+      <div class="zonelist" id="zonelist"></div>
+    </div>
+  </div>
+</section>
+
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+} }
+</script>
+<script type="module">
+import * as THREE from "three";
+import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+import { PointerLockControls } from "three/addons/controls/PointerLockControls.js";
+
+const A = "assets/";
+const $ = (id) => document.getElementById(id);
+// Blender (x, y, z-up) -> three (x, y-up, -y)
+const B = (x, y, z) => new THREE.Vector3(x, z, -y);
+
+// ------------------------------------------------------------ zones (Blender ground coords: from -> look at)
+const ZONES = [
+  { id: "plataforma", name: "Lago y plataforma", sub: "La propuesta sobre el agua", color: "#2a6f80", at: [26, -3], look: [9, 10] },
+  { id: "saman", name: "Samán y banca", sub: "El árbol grande junto al lago", color: "#b9cc78", at: [6, 30], look: [-4, 20.6] },
+  { id: "tramo1", name: "Tramo 1 · guadual", sub: "Sendero cubierto de guadua", color: "#b9cc78", at: [24, 20.6], look: [74, 21.2] },
+  { id: "cruce", name: "Cruce y poste de banderas", sub: "Orientación hacia las zonas", color: "#4e342b", at: [79, 24], look: [72.3, 17.2] },
+  { id: "cultivos", name: "Cultivos", sub: "Campo arado y frutales", color: "#8a5a3c", at: [77.5, 104], look: [40, 104] },
+  { id: "palmas", name: "Avenida de palmas", sub: "Entre los cultivos 2 y 3", color: "#f2a3aa", at: [77, 132], look: [20, 132] },
+  { id: "hotel", name: "Hotel de casitas", sub: "Entre árboles, junto a la glorieta", color: "#c96b4a", at: [80, 128], look: [95, 136] },
+  { id: "semillas", name: "Banco de semillas", sub: "Semillas del futuro", color: "#f2a3aa", at: [62, 186], look: [36, 228] },
+  { id: "gym", name: "Gimnasio y piscina", sub: "Bajo el Tramo 2", color: "#2a6f80", at: [83, 12], look: [97, 2] },
+  { id: "infinito", name: "Camino infinito", sub: "Hacia donde dice “Ya”", color: "#b9c4b3", at: [78, 6], look: [78, -400] },
+];
+
+// ------------------------------------------------------------ sign texts (from the signage PDFs)
+const SIGN_INFO = {
+  Senal_01: { num: "01", color: "#f2a3aa", title: "Semillas del futuro", sub: "Banco de semillas",
+    text: "Aquí se resguarda el tesoro vivo de la agrobiodiversidad mundial. En este banco de germoplasma de vanguardia, el CIAT protege más de 67.000 variedades de fríjol, yuca y forrajes tropicales. Estas semillas, adaptadas a condiciones de sequía y calor, son la clave para la seguridad alimentaria global frente al cambio climático y la base para la agricultura del mañana." },
+  Senal_02: { num: "02", color: "#7fb3c2", title: "Zona Quindío", sub: "Zona de observación",
+    text: "Un refugio de vida que conecta la tierra con el agua. Esta zona de transición es el hábitat de pequeños invertebrados y especies clave del ecosistema. Las conchas y caracolas de agua dulce que habitan aquí son bioindicadores fundamentales: su presencia nos revela la calidad, salud y equilibrio de los cuerpos hídricos que sostienen la biodiversidad en nuestro campus." },
+  Senal_03: { num: "03", color: "#9fbf8a", title: "Zona Bosque", sub: "Zona de avistamiento",
+    text: "El Bosque Seco Tropical es el hogar y refugio de una asombrosa variedad de aves que llenan de vida el campus del CIAT. Desde ramas y senderos, especies como el Sirirí (Tyrannus melancholicus) y el Bienteveo custodian el equilibrio natural, controlando insectos y dispersando semillas para regenerar la flora local. El silencio y la paciencia son tus mejores aliados para conectar con ellos." },
+  Poste_Banderas: { num: "↗", color: "#b9cc78", title: "Orientación", sub: "Poste de banderas",
+    text: "01 Semillas del futuro · 02 Zona Quindío · 03 Zona Bosque · 04 Observar sin ser vistos." },
+  SenalTrans_1: { num: "1", color: "#9aab9f", title: "Ave en vuelo", sub: "Señal translúcida con relieve", text: "Acrílico translúcido de color con el dibujo del ave en relieve blanco por ambas caras." },
+  SenalTrans_2: { num: "2", color: "#e0a3b4", title: "Flor", sub: "Señal translúcida con relieve", text: "Acrílico translúcido rosado junto al guadual del Tramo 1, con la flor en relieve blanco." },
+  SenalTrans_3: { num: "3", color: "#96b3b7", title: "Pájaro en la rama", sub: "Señal translúcida con relieve", text: "Acrílico translúcido junto al lago, con el pájaro posado dibujado en relieve blanco." },
+};
+
+// ------------------------------------------------------------ renderer / scene
+const canvas = $("view");
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: "high-performance" });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.75));
+renderer.setSize(innerWidth, innerHeight, false);
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.AgXToneMapping ?? THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.0;
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(62, innerWidth / innerHeight, 0.1, 4000);
+const controls = new PointerLockControls(camera, document.body);
+
+const manager = new THREE.LoadingManager();
+manager.onProgress = (_u, done, total) => { $("barfill").style.width = `${Math.round((done / total) * 100)}%`; $("loadtxt").textContent = `Cargando ${done} de ${total} archivos`; };
+const texLoader = new THREE.TextureLoader(manager);
+const gltfLoader = new GLTFLoader(manager);
+const tex = (f, srgb = true) => { const t = texLoader.load(A + f); if (srgb) t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; return t; };
+// models ship as self-contained glTF JSON; decode the embedded buffer and hand the loader a binary glTF
+let modelsDone = 0;
+async function glb(f) {
+  const json = await (await fetch(A + f)).json();
+  const b64 = json.buffers[0].uri.split(",")[1], bin = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+  delete json.buffers[0].uri;
+  const enc = new TextEncoder().encode(JSON.stringify(json));
+  const jl = (enc.length + 3) & ~3, bl = (bin.length + 3) & ~3;
+  const out = new ArrayBuffer(12 + 8 + jl + 8 + bl), dv = new DataView(out), u8 = new Uint8Array(out);
+  dv.setUint32(0, 0x46546c67, true); dv.setUint32(4, 2, true); dv.setUint32(8, out.byteLength, true);
+  dv.setUint32(12, jl, true); dv.setUint32(16, 0x4e4f534a, true); u8.fill(0x20, 20, 20 + jl); u8.set(enc, 20);
+  dv.setUint32(20 + jl, bl, true); dv.setUint32(24 + jl, 0x004e4942, true); u8.set(bin, 28 + jl);
+  const g = await new Promise((res, rej) => gltfLoader.parse(out, "", res, rej));
+  modelsDone++; $("loadtxt").textContent = `Modelos ${modelsDone} de 4`;
+  return g;
+}
+
+const data = await (await fetch(A + "escena.json")).json();
+const G = data.G, O = data.ortho;
+
+// sky + light
+const skyTex = tex("cielo.jpg"); skyTex.mapping = THREE.EquirectangularReflectionMapping;
+scene.background = skyTex;
+const sun = new THREE.DirectionalLight(0xfff1dc, 2.6);
+const sd = new THREE.Vector3(...(data.sun || [0.3, 0.7, -0.5])).normalize();
+sun.position.copy(sd.clone().multiplyScalar(100));
+scene.add(sun, new THREE.HemisphereLight(0xcfe3ff, 0x4d5a2f, 0.9));
+const haze = new THREE.Color(0xb8c6d6);
+scene.fog = new THREE.Fog(haze, 140, 2200);
+
+// ------------------------------------------------------------ ground shader: baked top view + close-up detail
+const groundTex = tex("suelo.jpg"); groundTex.anisotropy = 16;
+const detailTex = tex("tex_detalle.jpg", false); detailTex.wrapS = detailTex.wrapT = THREE.RepeatWrapping;
+const fallback = new THREE.Color(...(data.fallback || [0.26, 0.33, 0.14]));
+const groundMat = new THREE.ShaderMaterial({
+  fog: true,
+  uniforms: THREE.UniformsUtils.merge([THREE.UniformsLib.fog, {
+    map: { value: groundTex }, detail: { value: detailTex },
+    rect: { value: new THREE.Vector4(O.x0, O.y0, O.x1 - O.x0, O.y1 - O.y0) },
+    fallback: { value: fallback }, road: { value: new THREE.Color(...(data.roadColor || [0.42, 0.33, 0.24])) },
+  }]),
+  vertexShader: `
+    varying vec3 vW;
+    #include <fog_pars_vertex>
+    void main(){ vec4 w = modelMatrix * vec4(position,1.0); vW = w.xyz; vec4 mvPosition = viewMatrix * w; gl_Position = projectionMatrix * mvPosition;
+      #include <fog_vertex>
+    }`,
+  fragmentShader: `
+    uniform sampler2D map; uniform sampler2D detail; uniform vec4 rect; uniform vec3 fallback; uniform vec3 road;
+    varying vec3 vW;
+    #include <fog_pars_fragment>
+    void main(){
+      vec2 b = vec2(vW.x, -vW.z);                       // blender ground coords
+      vec2 uv = (b - rect.xy) / rect.zw;
+      float d = texture2D(detail, b / 2.6).r;
+      float d2 = texture2D(detail, b / 11.0).r;
+      vec3 col;
+      bool inside = uv.x > 0.0 && uv.x < 1.0 && uv.y > 0.0 && uv.y < 1.0;
+      vec3 outside = (abs(b.x - 78.0) < 3.0) ? road : fallback;
+      outside *= 0.8 + 0.4 * d2;
+      if (inside) {
+        col = texture2D(map, uv).rgb;
+        vec2 e = min(uv, 1.0 - uv) * rect.zw;            // blend into the surroundings near the bake border
+        float k = smoothstep(0.0, 12.0, min(e.x, e.y));
+        col = mix(outside, col, k);
+      } else col = outside;
+      float near = 1.0 - smoothstep(6.0, 40.0, length(cameraPosition - vW));
+      col *= mix(1.0, 0.72 + 0.56 * d, near);
+      gl_FragColor = vec4(col, 1.0);
+      #include <colorspace_fragment>
+      #include <fog_fragment>
+    }`,
+});
+groundMat.toneMapped = false;
+
+// ------------------------------------------------------------ load models
+const walkables = [], blockers = [];
+let waterMesh = null;
+const [suelo, plataforma, edificios, agua] = await Promise.all(["modelo_suelo.json", "modelo_plataforma.json", "modelo_edificios.json", "modelo_agua.json"].map(glb));
+for (const g of [suelo, plataforma]) {
+  g.scene.traverse((o) => { if (o.isMesh) { o.material = groundMat; walkables.push(o); } });
+  scene.add(g.scene);
+}
+// box-projected textures for buildings
+const TEX = { teja: ["tex_teja.jpg", 2.2, 0xd8b8a8], estuco: ["tex_estuco.jpg", 3.0, 0xffffff], madera: ["tex_madera.jpg", 2.0, 0xffffff], concreto: ["tex_concreto.jpg", 2.5, 0xe6e4df] };
+const texCache = {};
+function boxUV(mesh, tile) {
+  const g = mesh.geometry, p = g.attributes.position, n = g.attributes.normal, m = mesh.matrixWorld, nm = new THREE.Matrix3().getNormalMatrix(m);
+  const uv = new Float32Array(p.count * 2), v = new THREE.Vector3(), w = new THREE.Vector3();
+  for (let i = 0; i < p.count; i++) {
+    v.fromBufferAttribute(p, i).applyMatrix4(m); w.fromBufferAttribute(n, i).applyMatrix3(nm);
+    const ax = Math.abs(w.x), ay = Math.abs(w.y), az = Math.abs(w.z);
+    let a, b; if (ay >= ax && ay >= az) { a = v.x; b = v.z; } else if (ax >= az) { a = v.z; b = v.y; } else { a = v.x; b = v.y; }
+    uv[2 * i] = a / tile; uv[2 * i + 1] = b / tile;
+  }
+  g.setAttribute("uv", new THREE.BufferAttribute(uv, 2));
+}
+edificios.scene.updateMatrixWorld(true);
+edificios.scene.traverse((o) => {
+  if (!o.isMesh) return;
+  const key = o.userData.webtex || o.parent?.userData?.webtex;
+  const nm = o.material.name || "";
+  if (key && TEX[key] && /Teja|Fachada|PisoMadera|MaderaBanca|Deck_Piedra|ConcretoSendero|BaseSenal/.test(nm)) {
+    const [f, tile, tint] = TEX[key];
+    if (!texCache[f]) { texCache[f] = tex(f); texCache[f].wrapS = texCache[f].wrapT = THREE.RepeatWrapping; }
+    boxUV(o, tile); o.material = o.material.clone(); o.material.map = texCache[f]; o.material.color.set(tint);
+  }
+  if (/Vidrio|Agua|Fachadas/.test(nm)) { o.material.envMapIntensity = 1.4; o.material.roughness = Math.min(o.material.roughness, 0.12); }
+  if (/AguaPiscina/.test(nm)) { o.material.transparent = true; o.material.opacity = 0.75; o.material.color.set(0x4fb8c8); }
+  walkables.push(o); blockers.push(o);
+});
+scene.add(edificios.scene);
+// lake water
+const waterNormal = tex("tex_agua_normal.jpg", false); waterNormal.wrapS = waterNormal.wrapT = THREE.RepeatWrapping; waterNormal.repeat.set(10, 7);
+agua.scene.traverse((o) => { if (o.isMesh) {
+  o.material = new THREE.MeshPhysicalMaterial({ color: 0x15291b, roughness: 0.1, metalness: 0, normalMap: waterNormal, normalScale: new THREE.Vector2(0.25, 0.25), transparent: true, opacity: 0.94, envMapIntensity: 0.45 });
+  waterMesh = o; walkables.push(o);
+} });
+scene.add(agua.scene);
+const pmrem = new THREE.PMREMGenerator(renderer);
+
+// ------------------------------------------------------------ vegetation impostors (two crossed cards rendered from the real Blender models)
+const imp = data.impostors || {};
+const dummy = new THREE.Object3D();
+for (const [asset, list] of Object.entries(data.instances)) {
+  const m = imp[asset]; if (!m || !list.length) continue;
+  for (const view of ["a", "b"]) {
+    const t = tex(`imp_${asset}_${view}.png`);
+    const geo = new THREE.PlaneGeometry(m.S, m.S);
+    if (view === "a") geo.translate(m.ca, m.zc, 0); else { geo.rotateY(Math.PI / 2); geo.translate(0, m.zc, -m.cb); }
+    const mat = new THREE.MeshBasicMaterial({ map: t, alphaTest: 0.42, side: THREE.DoubleSide, toneMapped: false, fog: true, color: asset === "palma" ? 0xa9a9a2 : 0xffffff });
+    const im = new THREE.InstancedMesh(geo, mat, list.length);
+    list.forEach(([x, y, z, r, s], i) => { dummy.position.set(x, y, z); dummy.rotation.set(0, r, 0); dummy.scale.setScalar(s); dummy.updateMatrix(); im.setMatrixAt(i, dummy.matrix); });
+    im.frustumCulled = false;
+    scene.add(im);
+  }
+}
+
+// ------------------------------------------------------------ signage
+const signs = [];
+function colorOnly(mat) {   // use the texture only for its alpha (backs and edges take a flat colour)
+  mat.onBeforeCompile = (s) => { s.fragmentShader = s.fragmentShader.replace("#include <map_fragment>", "diffuseColor.a *= texture2D( map, vMapUv ).a;"); };
+  return mat;
+}
+for (const s of data.signs) {
+  const grp = new THREE.Group(); grp.position.set(...s.pos); grp.rotation.y = s.rotY;
+  const plane = () => { const g = new THREE.PlaneGeometry(s.w, s.h); g.translate(0, s.z0 + s.h / 2, 0); return g; };
+  if (s.kind === "panel") {
+    const t = tex(s.tex); const th = 0.05;
+    const front = new THREE.Mesh(plane(), new THREE.MeshStandardMaterial({ map: t, alphaTest: 0.5, roughness: 0.55 }));
+    front.position.z = th / 2; grp.add(front);
+    for (let k = 0; k < 6; k++) {
+      const z = th / 2 - (k + 1) * (th / 6);
+      const lay = new THREE.Mesh(plane(), colorOnly(new THREE.MeshStandardMaterial({ map: t, alphaTest: 0.5, color: s.back, roughness: 0.6, side: k === 5 ? THREE.BackSide : THREE.DoubleSide })));
+      lay.position.z = z; grp.add(lay);
+    }
+  } else {
+    const shape = tex(s.tex), lines = tex(s.lines); const th = 0.025;
+    const acr = new THREE.MeshPhysicalMaterial({ map: shape, alphaTest: 0.5, color: new THREE.Color().setRGB(...s.color, THREE.LinearSRGBColorSpace), transmission: 0.85, thickness: 0.03, roughness: 0.16, ior: 1.49, clearcoat: 0.5, side: THREE.DoubleSide });
+    for (const z of [-th / 2, 0, th / 2]) { const p = new THREE.Mesh(plane(), acr); p.position.z = z; grp.add(p); }
+    const white = new THREE.MeshStandardMaterial({ map: lines, alphaTest: 0.45, color: 0xf2f2ee, roughness: 0.35, side: THREE.DoubleSide });
+    for (const sign of [1, -1]) for (const dz of [0.002, 0.004, 0.006]) {
+      const p = new THREE.Mesh(plane(), white); p.position.z = sign * (th / 2 + dz); grp.add(p);
+    }
+  }
+  scene.add(grp);
+  grp.updateMatrixWorld(true); const centre = new THREE.Vector3(0, s.z0 + s.h / 2, 0).applyMatrix4(grp.matrixWorld);
+  const face = new THREE.Vector3(0, 0, 1).applyQuaternion(grp.quaternion);
+  signs.push({ name: s.name, centre, face });
+}
+
+// ------------------------------------------------------------ fog colour from the sky horizon, env map
+let envDone = false;
+manager.onLoad = () => {
+  if (envDone) return; envDone = true;
+  try {
+    const img = skyTex.image, c = document.createElement("canvas"); c.width = 256; c.height = 128;
+    const x = c.getContext("2d"); x.drawImage(img, 0, 0, 256, 128);
+    const px = x.getImageData(0, 66, 256, 4).data; let r = 0, g = 0, b = 0;
+    for (let i = 0; i < px.length; i += 4) { r += px[i]; g += px[i + 1]; b += px[i + 2]; }
+    const n = px.length / 4; haze.setRGB(r / n / 255, g / n / 255, b / n / 255, THREE.SRGBColorSpace); scene.fog.color.copy(haze);
+  } catch (e) { /* keep default haze */ }
+  scene.environment = pmrem.fromEquirectangular(skyTex).texture;
+  ready();
+};
+
+// ------------------------------------------------------------ movement + collisions
+const ray = new THREE.Raycaster(); const DOWN = new THREE.Vector3(0, -1, 0);
+const keys = {}; let vy = 0;
+addEventListener("keydown", (e) => { keys[e.code] = true; if (e.code === "KeyM") toggleMap(); });
+addEventListener("keyup", (e) => { keys[e.code] = false; });
+function groundAt(x, z, fromY) {
+  ray.set(new THREE.Vector3(x, fromY, z), DOWN); ray.far = 60;
+  const h = ray.intersectObjects(walkables, false)[0];
+  return h ? { y: h.point.y, water: h.object === waterMesh } : null;
+}
+function blocked(from, dir, dist) {
+  for (const hgt of [0.4, 1.2]) {
+    ray.set(new THREE.Vector3(from.x, from.y - 1.65 + hgt, from.z), dir); ray.far = dist + 0.35;
+    if (ray.intersectObjects(blockers, false).length) return true;
+  }
+  return false;
+}
+const EYE = 1.65;
+function teleport(z) {
+  const p = B(z.at[0], z.at[1], 0), l = B(z.look[0], z.look[1], 0);
+  const g = groundAt(p.x, p.z, 80); p.y = (g ? g.y : G) + EYE;
+  camera.position.copy(p);
+  const t = B(z.look[0], z.look[1], 0); t.y = p.y + (z.id === "infinito" ? 0.3 : 0);
+  camera.lookAt(t); showPlace(z.name);
+}
+let placeTimer;
+function showPlace(name) { const el = $("place"); el.textContent = name; el.hidden = false; el.style.opacity = 1; clearTimeout(placeTimer); placeTimer = setTimeout(() => (el.style.opacity = 0), 2600); }
+
+const clock = new THREE.Clock();
+const fwd = new THREE.Vector3(), right = new THREE.Vector3(), mv = new THREE.Vector3();
+function step(dt) {
+  if (!controls.isLocked) return;
+  const speed = keys.ShiftLeft || keys.ShiftRight ? 9 : 3.6;
+  camera.getWorldDirection(fwd); fwd.y = 0; fwd.normalize(); right.crossVectors(fwd, camera.up).normalize();
+  mv.set(0, 0, 0);
+  if (keys.KeyW || keys.ArrowUp) mv.add(fwd);
+  if (keys.KeyS || keys.ArrowDown) mv.sub(fwd);
+  if (keys.KeyD || keys.ArrowRight) mv.add(right);
+  if (keys.KeyA || keys.ArrowLeft) mv.sub(right);
+  if (mv.lengthSq() > 0) {
+    mv.normalize().multiplyScalar(speed * dt);
+    for (const axis of ["x", "z"]) {
+      const d = new THREE.Vector3(); d[axis] = mv[axis]; if (!d[axis]) continue;
+      const len = Math.abs(d[axis]); d.normalize();
+      if (blocked(camera.position, d, len)) continue;
+      const nx = camera.position.x + (axis === "x" ? mv.x : 0), nz = camera.position.z + (axis === "z" ? mv.z : 0);
+      const feet = camera.position.y - EYE;
+      const g = groundAt(nx, nz, feet + 0.65);         // can step up 65 cm (platform steps)
+      if (!g || g.water) continue;
+      camera.position.x = nx; camera.position.z = nz;
+    }
+  }
+  const g = groundAt(camera.position.x, camera.position.z, camera.position.y - EYE + 0.65);
+  if (g) {
+    const target = g.y + EYE;
+    if (camera.position.y > target + 0.02) { vy -= 18 * dt; camera.position.y = Math.max(target, camera.position.y + vy * dt); }
+    else { vy = 0; camera.position.y += (target - camera.position.y) * Math.min(1, dt * 14); }
+  }
+}
+
+// ------------------------------------------------------------ sign proximity card
+let currentSign = null;
+const toCam = new THREE.Vector3();
+function updateInfo() {
+  let best = null, bestD = 9;
+  for (const s of signs) {
+    toCam.subVectors(camera.position, s.centre); const d = toCam.length();
+    if (d < bestD) { best = s; bestD = d; }
+  }
+  const name = best ? best.name : null;
+  if (name === currentSign) return;
+  currentSign = name; const el = $("info");
+  if (!name || !SIGN_INFO[name]) { el.classList.add("off"); return; }
+  const i = SIGN_INFO[name];
+  el.innerHTML = `<span class="num" style="background:${i.color}">${i.num}</span><h3>${i.title}</h3><div class="sub">${i.sub}</div><p>${i.text}</p>`;
+  el.classList.remove("off");
+}
+
+// ------------------------------------------------------------ maps (oriented like the hand sketch: sketch right = +Y, sketch down = +X)
+const groundImg = new Image(); groundImg.src = A + "suelo.jpg";
+function drawMap(cv, big) {
+  const ctx = cv.getContext("2d"), W = cv.width, H = cv.height;
+  const sx = W / (O.y1 - O.y0), sy = H / (O.x1 - O.x0);
+  const toMap = (bx, by) => [(by - O.y0) * sx, (bx - O.x0) * sy];
+  ctx.save(); ctx.clearRect(0, 0, W, H);
+  if (groundImg.complete && groundImg.naturalWidth) {
+    ctx.translate(W, 0); ctx.rotate(Math.PI / 2);         // image right(+X) -> down, image up(+Y) -> right
+    ctx.drawImage(groundImg, 0, 0, H, W);
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+  } else { ctx.fillStyle = "#33452a"; ctx.fillRect(0, 0, W, H); }
+  ctx.restore();
+  if (big) {
+    ctx.font = "600 14px Figtree, sans-serif";
+    for (const z of ZONES) {
+      const [x, y] = toMap(z.at[0], z.at[1]); if (x < 0 || x > W || y < 0 || y > H) continue;
+      ctx.fillStyle = z.color; ctx.strokeStyle = "#0d1f16"; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.arc(x, y, 8, 0, 7); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = "rgba(13,31,22,.78)"; const tw = ctx.measureText(z.name).width;
+      ctx.fillRect(x + 12, y - 11, tw + 12, 22); ctx.fillStyle = "#f3efe3"; ctx.fillText(z.name, x + 18, y + 5);
+    }
+  }
+  const bx = camera.position.x, by = -camera.position.z; const [px, py] = toMap(bx, by);
+  camera.getWorldDirection(fwd);                         // map: right = -z (three), down = +x
+  ctx.save(); ctx.translate(px, py); ctx.rotate(Math.atan2(fwd.x, -fwd.z));
+  const r = big ? 13 : 8;
+  ctx.fillStyle = "#f2a3aa"; ctx.strokeStyle = "#0d1f16"; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(r, 0); ctx.lineTo(-r * 0.7, r * 0.65); ctx.lineTo(-r * 0.35, 0); ctx.lineTo(-r * 0.7, -r * 0.65); ctx.closePath(); ctx.fill(); ctx.stroke();
+  ctx.restore();
+  return toMap;
+}
+let mapOpen = false;
+function toggleMap(force) {
+  if (!started) return;
+  mapOpen = force ?? !mapOpen; $("map").hidden = !mapOpen;
+  if (mapOpen) { controls.unlock(); drawMap($("mapcv"), true); } else if (started) controls.lock();
+}
+$("mapclose").onclick = () => toggleMap(false);
+$("mapcv").addEventListener("click", (e) => {
+  const cv = e.currentTarget, r = cv.getBoundingClientRect(), x = (e.clientX - r.left) * (cv.width / r.width), y = (e.clientY - r.top) * (cv.height / r.height);
+  const sx = cv.width / (O.y1 - O.y0), sy = cv.height / (O.x1 - O.x0);
+  let best = null, bd = 30;
+  for (const z of ZONES) { const zx = (z.at[1] - O.y0) * sx, zy = (z.at[0] - O.x0) * sy; const d = Math.hypot(zx - x, zy - y); if (d < bd) { bd = d; best = z; } }
+  if (best) teleport(best);
+  else { teleport({ id: "x", name: "Punto del mapa", at: [O.x0 + y / sy, O.y0 + x / sx], look: [O.x0 + y / sy + 10, O.y0 + x / sx] }); }
+  toggleMap(false);
+});
+
+// ------------------------------------------------------------ menu
+const list = $("zonelist");
+for (const z of ZONES) {
+  const b = document.createElement("button"); b.type = "button";
+  b.innerHTML = `<span class="dot" style="background:${z.color}"></span><span><b>${z.name}</b><small>${z.sub}</small></span>`;
+  b.onclick = () => { if (!isReady) return; teleport(z); enter(); };
+  list.appendChild(b);
+}
+let started = false, isReady = false;
+function enter() { started = true; controls.lock(); }
+$("enter").onclick = enter;
+controls.addEventListener("lock", () => { $("menu").hidden = true; for (const id of ["cross", "mini", "tip"]) $(id).hidden = false; clock.getDelta(); });
+controls.addEventListener("unlock", () => { if (!mapOpen) { $("menu").hidden = false; $("enter").textContent = "Continuar el recorrido"; } });
+function ready() {
+  isReady = true; teleport(ZONES[0]); $("place").hidden = true;
+  $("enter").disabled = false; $("enter").textContent = "Entrar al recorrido"; $("loadtxt").textContent = "Listo. Haz clic para entrar y usa el mouse para mirar.";
+}
+
+window.__tour = { teleport, ZONES, isReady: () => isReady, camera };
+addEventListener("resize", () => { camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth, innerHeight, false); });
+let frame = 0;
+renderer.setAnimationLoop(() => {
+  const dt = Math.min(clock.getDelta(), 0.05);
+  step(dt);
+  waterNormal.offset.x += dt * 0.004; waterNormal.offset.y += dt * 0.0025;
+  if (++frame % 6 === 0) { updateInfo(); if (!$("mini").hidden) drawMap($("minicv"), false); }
+  renderer.render(scene, camera);
+});
+</script>
+
+</html>

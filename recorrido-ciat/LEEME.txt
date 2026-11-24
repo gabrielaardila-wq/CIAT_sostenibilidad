@@ -1,0 +1,14 @@
+Recorrido Campus CIAT - pagina web lista para subir
+
+Esta carpeta es la pagina completa (index.html + assets/). Funciona en cualquier hosting de paginas estaticas.
+
+Opcion mas facil (Netlify, gratis, sin GitHub):
+1. Entra a https://app.netlify.com/drop
+2. Arrastra ESTA CARPETA completa (recorrido-ciat) a la pagina.
+3. Crea una cuenta gratis para que no se borre.
+4. En "Site configuration > Change site name" escribe el nombre que quieras:
+   quedara como https://ese-nombre.netlify.app
+5. Si compras un dominio propio (ej. recorridociat.com), en "Domain management"
+   lo conectas y la pagina queda con esa direccion.
+
+Nota: abrir index.html con doble clic en el computador NO funciona; necesita estar en un servidor.
