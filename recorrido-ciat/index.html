@@ -138,6 +138,7 @@ const B = (x, y, z) => new THREE.Vector3(x, z, -y);
 
 // ------------------------------------------------------------ zones (Blender ground coords: from -> look at)
 const ZONES = [
+  { id: "semillas", name: "Banco de semillas", sub: "Semillas del futuro", color: "#f2a3aa", at: [62, 186], look: [36, 228] },
   { id: "plataforma", name: "Lago y plataforma", sub: "La propuesta sobre el agua", color: "#2a6f80", at: [26, -3], look: [9, 10] },
   { id: "saman", name: "Samán y banca", sub: "El árbol grande junto al lago", color: "#b9cc78", at: [6, 30], look: [-4, 20.6] },
   { id: "tramo1", name: "Tramo 1 · guadual", sub: "Sendero cubierto de guadua", color: "#b9cc78", at: [24, 20.6], look: [74, 21.2] },
@@ -145,7 +146,6 @@ const ZONES = [
   { id: "cultivos", name: "Cultivos", sub: "Campo arado y frutales", color: "#8a5a3c", at: [77.5, 104], look: [40, 104] },
   { id: "palmas", name: "Avenida de palmas", sub: "Entre los cultivos 2 y 3", color: "#f2a3aa", at: [77, 132], look: [20, 132] },
   { id: "hotel", name: "Hotel de casitas", sub: "Entre árboles, junto a la glorieta", color: "#c96b4a", at: [80, 128], look: [95, 136] },
-  { id: "semillas", name: "Banco de semillas", sub: "Semillas del futuro", color: "#f2a3aa", at: [62, 186], look: [36, 228] },
   { id: "gym", name: "Gimnasio y piscina", sub: "Bajo el Tramo 2", color: "#2a6f80", at: [83, 12], look: [97, 2] },
   { id: "infinito", name: "Camino infinito", sub: "Hacia donde dice “Ya”", color: "#b9c4b3", at: [78, 6], look: [78, -400] },
 ];
@@ -160,6 +160,8 @@ const SIGN_INFO = {
     text: "El Bosque Seco Tropical es el hogar y refugio de una asombrosa variedad de aves que llenan de vida el campus del CIAT. Desde ramas y senderos, especies como el Sirirí (Tyrannus melancholicus) y el Bienteveo custodian el equilibrio natural, controlando insectos y dispersando semillas para regenerar la flora local. El silencio y la paciencia son tus mejores aliados para conectar con ellos." },
   Poste_Banderas: { num: "↗", color: "#b9cc78", title: "Orientación", sub: "Poste de banderas",
     text: "01 Semillas del futuro · 02 Zona Quindío · 03 Zona Bosque · 04 Observar sin ser vistos." },
+  Atril_Rosa: { num: "◎", color: "#f2a3aa", title: "Espirales que miden la vida", sub: "Conchas · Spirals That Measure Life",
+    text: "En la orilla donde el agua calma toca la tierra, habitan los caracoles de agua dulce. Son mucho más que conchas vacías: al alimentarse de algas, purifican el estanque de forma natural y sirven como bioindicadores vivos que confirman la buena salud del agua." },
   SenalTrans_1: { num: "1", color: "#9aab9f", title: "Ave en vuelo", sub: "Señal translúcida con relieve", text: "Acrílico translúcido de color con el dibujo del ave en relieve blanco por ambas caras." },
   SenalTrans_2: { num: "2", color: "#e0a3b4", title: "Flor", sub: "Señal translúcida con relieve", text: "Acrílico translúcido rosado junto al guadual del Tramo 1, con la flor en relieve blanco." },
   SenalTrans_3: { num: "3", color: "#96b3b7", title: "Pájaro en la rama", sub: "Señal translúcida con relieve", text: "Acrílico translúcido junto al lago, con el pájaro posado dibujado en relieve blanco." },
@@ -195,7 +197,7 @@ async function glb(f) {
   dv.setUint32(12, jl, true); dv.setUint32(16, 0x4e4f534a, true); u8.fill(0x20, 20, 20 + jl); u8.set(enc, 20);
   dv.setUint32(20 + jl, bl, true); dv.setUint32(24 + jl, 0x004e4942, true); u8.set(bin, 28 + jl);
   const g = await new Promise((res, rej) => gltfLoader.parse(out, "", res, rej));
-  modelsDone++; $("loadtxt").textContent = `Modelos ${modelsDone} de 4`;
+  modelsDone++; $("loadtxt").textContent = `Modelos ${modelsDone} de 5`;
   return g;
 }
 
@@ -260,7 +262,7 @@ groundMat.toneMapped = false;
 // ------------------------------------------------------------ load models
 const walkables = [], blockers = [];
 let waterMesh = null;
-const [suelo, plataforma, edificios, agua] = await Promise.all(["modelo_suelo.json", "modelo_plataforma.json", "modelo_edificios.json", "modelo_agua.json"].map(glb));
+const [suelo, plataforma, edificios, agua, atriles] = await Promise.all(["modelo_suelo.json", "modelo_plataforma.json", "modelo_edificios.json", "modelo_agua.json", "modelo_atriles.json"].map(glb));
 for (const g of [suelo, plataforma]) {
   g.scene.traverse((o) => { if (o.isMesh) { o.material = groundMat; walkables.push(o); } });
   scene.add(g.scene);
@@ -294,6 +296,8 @@ edificios.scene.traverse((o) => {
   walkables.push(o); blockers.push(o);
 });
 scene.add(edificios.scene);
+atriles.scene.traverse((o) => { if (o.isMesh) { if (o.material.map) { o.material.map.colorSpace = THREE.SRGBColorSpace; o.material.map.anisotropy = 8; } walkables.push(o); blockers.push(o); } });
+scene.add(atriles.scene);
 // lake water
 const waterNormal = tex("tex_agua_normal.jpg", false); waterNormal.wrapS = waterNormal.wrapT = THREE.RepeatWrapping; waterNormal.repeat.set(10, 7);
 agua.scene.traverse((o) => { if (o.isMesh) {
@@ -333,6 +337,10 @@ for (const s of data.signs) {
     const t = tex(s.tex); const th = 0.05;
     const front = new THREE.Mesh(plane(), new THREE.MeshStandardMaterial({ map: t, alphaTest: 0.5, roughness: 0.55 }));
     front.position.z = th / 2; grp.add(front);
+    const tabMat = new THREE.MeshPhysicalMaterial({ map: t, transparent: true, depthWrite: false, roughness: 0.15, clearcoat: 0.5, side: THREE.DoubleSide });
+    tabMat.onBeforeCompile = (sh) => { sh.fragmentShader = sh.fragmentShader.replace("#include <map_fragment>",
+      "vec4 tc = texture2D( map, vMapUv ); if (tc.a < 0.08 || tc.a > 0.9) discard; diffuseColor.rgb *= tc.rgb; diffuseColor.a = 0.55;"); };
+    for (const z of [th / 2 + 0.001, -th / 2 - 0.001]) { const tp = new THREE.Mesh(plane(), tabMat); tp.position.z = z; grp.add(tp); }
     for (let k = 0; k < 6; k++) {
       const z = th / 2 - (k + 1) * (th / 6);
       const lay = new THREE.Mesh(plane(), colorOnly(new THREE.MeshStandardMaterial({ map: t, alphaTest: 0.5, color: s.back, roughness: 0.6, side: k === 5 ? THREE.BackSide : THREE.DoubleSide })));
@@ -353,6 +361,8 @@ for (const s of data.signs) {
   signs.push({ name: s.name, centre, face });
 }
 
+atriles.scene.updateMatrixWorld(true);
+atriles.scene.traverse((o) => { if (o.isMesh && o.name === "Atril_Rosa") { const c = new THREE.Box3().setFromObject(o).getCenter(new THREE.Vector3()); signs.push({ name: "Atril_Rosa", centre: c }); } });
 // ------------------------------------------------------------ fog colour from the sky horizon, env map
 let envDone = false;
 manager.onLoad = () => {
