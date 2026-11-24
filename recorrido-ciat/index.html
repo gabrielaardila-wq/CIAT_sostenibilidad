@@ -220,12 +220,16 @@ scene.fog = new THREE.Fog(haze, 140, 2200);
 
 // ------------------------------------------------------------ ground shader: baked top view + close-up detail
 const groundTex = tex("suelo.jpg"); groundTex.anisotropy = 16;
+const DT = data.detail || {};
+const detA = tex("detalle_plataforma.jpg"), detB = tex("detalle_tramo.jpg");
+const rA = DT.detalle_plataforma || [0, 0, 0, 0], rB = DT.detalle_tramo || [0, 0, 0, 0];
 const detailTex = tex("tex_detalle.jpg", false); detailTex.wrapS = detailTex.wrapT = THREE.RepeatWrapping;
 const fallback = new THREE.Color(...(data.fallback || [0.26, 0.33, 0.14]));
 const groundMat = new THREE.ShaderMaterial({
   fog: true,
   uniforms: THREE.UniformsUtils.merge([THREE.UniformsLib.fog, {
     map: { value: groundTex }, detail: { value: detailTex },
+    mapA: { value: detA }, rectA: { value: new THREE.Vector4(...rA) }, mapB: { value: detB }, rectB: { value: new THREE.Vector4(...rB) },
     rect: { value: new THREE.Vector4(O.x0, O.y0, O.x1 - O.x0, O.y1 - O.y0) },
     fallback: { value: fallback }, road: { value: new THREE.Color(...(data.roadColor || [0.42, 0.33, 0.24])) },
   }]),
@@ -237,6 +241,8 @@ const groundMat = new THREE.ShaderMaterial({
     }`,
   fragmentShader: `
     uniform sampler2D map; uniform sampler2D detail; uniform vec4 rect; uniform vec3 fallback; uniform vec3 road;
+    uniform sampler2D mapA; uniform vec4 rectA; uniform sampler2D mapB; uniform vec4 rectB;
+    float inR(vec2 b, vec4 r){ vec2 u = (b - r.xy) / r.zw; vec2 e = min(u, 1.0 - u) * r.zw; return (u.x > 0.0 && u.x < 1.0 && u.y > 0.0 && u.y < 1.0) ? smoothstep(0.0, 1.0, min(e.x, e.y)) : 0.0; }
     varying vec3 vW;
     #include <fog_pars_fragment>
     void main(){
@@ -255,7 +261,10 @@ const groundMat = new THREE.ShaderMaterial({
         col = mix(outside, col, k);
       } else col = outside;
       float near = 1.0 - smoothstep(6.0, 40.0, length(cameraPosition - vW));
-      col *= mix(1.0, 0.72 + 0.56 * d, near);
+      float ka = rectA.z > 0.0 ? inR(b, rectA) : 0.0, kb = rectB.z > 0.0 ? inR(b, rectB) : 0.0;
+      if (ka + kb < 0.99) col *= mix(1.0, 0.72 + 0.56 * d, near * (1.0 - ka - kb));
+      if (ka > 0.0) col = mix(col, texture2D(mapA, (b - rectA.xy) / rectA.zw).rgb, ka);
+      if (kb > 0.0) col = mix(col, texture2D(mapB, (b - rectB.xy) / rectB.zw).rgb, kb);
       gl_FragColor = vec4(col, 1.0);
       #include <colorspace_fragment>
       #include <fog_fragment>
